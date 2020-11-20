@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <!leaflet css>
+
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+        <!leaflet javascript file>
+
+            <style>
+                #mapid {
+                    height: 960px;
+                }
+            </style>
+</head>
+
+<body>
+    <div id="mapid"></div>
+    <p>Never argue about where to meet up again.</p>
+    <p>Press "R" to clear markers.</p>
+    <script>
+        // map object
+        var map = L.map('mapid').setView([1.315929, 103.853362], 12);
+        L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=yymAfgTifeqzDKTg3YXg', {
+            tileSize: 512,
+            zoomOffset: -1,
+            minZoom: 1,
+            attribution: "\u003ca href=\"https://www.maptiler.com/copyright/\" target=\"_blank\"\u003e\u0026copy; MapTiler\u003c/a\u003e \u003ca href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\"\u003e\u0026copy; OpenStreetMap contributors\u003c/a\u003e",
+            crossOrigin: true
+        }).addTo(map);
+
+
+        let markers = L.layerGroup() //create array to keep track of markers 
+        let markercounter = 0
+        
+        //add marker on map click 
+        function onMapClick(e) {
+            markers.addLayer(new L.marker(e.latlng, {draggable:true, autoPan:true})).addTo(map) //add new marker to markers layer group //then add layer group to map
+            markercounter++;
+        }
+        map.on('click', onMapClick);
+
+        //clear markers on double click
+        map.on('keypress', function clearMarkers(e) {
+            if (e.key = "r") {
+                markers.clearLayers()
+                markercounter = 0
+            }
+        })
+
+        //find average position of all markers using a naive mean of latlng values (cities are small enough anyway)
+        let positions = []
+        function updatePositions() {
+            positions = []
+            markers.eachLayer(function (layer) {
+                positions.push(layer.getLatLng())
+            })
+        }
+
+        // red icon for midMarker
+        var redIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          });
+        
+        //create mid marker
+        midMarker = new L.marker([1.290270,103.851959], {icon: redIcon}).addTo(map)
+        //update latlng of midmarker to be the average of other marker positions
+        
+
+        function drawMidpoint(array) {
+            let markerArray = markers.getLayers()
+            totalLat = 0
+            totalLng = 0
+            for (let i = 0; i < markerArray.length; i++) { //iterate through markerArray
+                totalLat += markerArray[i].getLatLng()["lat"]
+                totalLng += markerArray[i].getLatLng()["lng"]
+            }
+            avgLat = totalLat / markerArray.length;
+            avgLng = totalLng / markerArray.length;
+            midMarker.setLatLng([avgLat, avgLng]) 
+        }
+
+        //update positions and drawMidpoint every 200 ms //TODO - maybe schedule these when Dragging event is triggering
+        setInterval(function update() {
+            updatePositions()
+            drawMidpoint(positions)
+        }, 200)
+
+    </script>
+</body>
+
+</html>
